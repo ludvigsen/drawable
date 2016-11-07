@@ -3,7 +3,7 @@ import Svg exposing (svg, g, path)
 import Svg.Attributes exposing (transform, d, stroke, fill, strokeLinejoin, strokeWidth)
 import Html.Attributes exposing (style, value)
 import Html exposing (Html, text, div)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 import Html.App as Html
 import Mouse exposing (..)
 import List exposing (..)
@@ -114,11 +114,31 @@ viewDown down = Html.div [] (map (\(x,y) -> Html.text ((toString x) ++ "," ++ (t
 viewDowns: List (List (Float, Float)) -> Html a
 viewDowns downs = Html.div [] (map viewDown downs)
 
+getColorBoxStyle color =
+    style
+        [
+          ("background", color)
+        , ("width", "2rem")
+        , ("height", "2rem")
+        , ("display", "inline-block")
+        ]
+
+createColorBox color = Html.div [ (getColorBoxStyle color), onClick (ChangeColor color) ] []
+
+createColorBoxes colors = map createColorBox colors
+
+colors = ["#2a2c2e", "#e20800", "#d0021b", "#5cbd5c", "#5cb85c", "#6dc20f", "#ffffff", "#a8a5a6", "#e34a3e", "#f47f30",
+          "#ffc200", "#91c591", "#c0e3c0", "#4d91e2", "#f5f9fd", "#387ecf", "#4a90e2", "#475b72", "#304155", "#1d7ab7",
+          "#2e71b2", "#223246", "#a0a9ba", "#596479", "#000000", "#dddddd", "#ececec", "#fcfcfc", "#a4a4a4", "#acacac",
+          "#cccccc", "#969696", "#e5e5e5", "#f5f5f5", "#888888", "#e6e5e5", "#e1e1e1", "#ea4ccb", "#f46c30", "#edbc64",
+          "#6495ed", "#f9f0e6"]
+
 -- VIEW
 view: Model -> Html Msg
 view model =
     Html.div [] [
       Html.div [] [
+           Html.div [] (createColorBoxes colors),
            Html.input [value model.currentColor, onInput ChangeColor] []
           ],
       svg [ style [ ( "width", (toString (model.width * 2)) ++ "px" ), ( "height", (toString (model.height * 2)) ++ "px" ) ] ]
