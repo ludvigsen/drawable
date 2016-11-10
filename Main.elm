@@ -1,9 +1,9 @@
 import Visualization.Path as P exposing (begin, moveTo, lineTo, close, toAttrString)
 import Svg exposing (svg, g, path)
 import Svg.Attributes exposing (transform, d, stroke, fill, strokeLinejoin, strokeWidth)
-import Html.Attributes exposing (style, value)
+import Html.Attributes as A exposing (style, value)
 import Html exposing (Html, text, div)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onInput, onClick, onWithOptions)
 import Html.App as Html
 import Mouse exposing (..)
 import List exposing (..)
@@ -13,6 +13,7 @@ import Collage
 import Element
 import Color
 import String
+import Json.Decode as Json
 
 main =
   Html.program
@@ -32,6 +33,8 @@ type alias Model = {
   , currentColor: String
   , colors: List String
   , isDown: Bool
+  , currentStroke: String
+  , strokes: List String
   }
 
 initialModel: Model
@@ -44,6 +47,8 @@ initialModel =
     , currentColor = "#000"
     , colors = []
     , isDown = False
+    , currentStroke = "40"
+    , strokes = []
     }
 
 init : (Model, Cmd Msg)
@@ -58,6 +63,7 @@ type Msg
     | UpPosition Float Float
     | Size Int Int
     | ChangeColor String
+    | ChangeStroke String
     | NoOp
 
 updateLast xs x =
@@ -78,13 +84,21 @@ update msg model =
             else
               ({model | x = x, y = y} , Cmd.none)
         DownPosition x y ->
-            ({model | x = x, y = y, colors = model.colors ++ [model.currentColor], isDown = True, downs = model.downs ++ [[(x,y),(x+1,y+1),(x+1,y-1),(x-1,y+1), (x+1,y), (x-1,y)]]}, Cmd.none)
+            ({model |
+                  x = x, y = y,
+                  colors = model.colors ++ [model.currentColor],
+                  isDown = True,
+                  downs = model.downs ++ [[(x,y),(x+1,y+1),(x+1,y-1),(x-1,y+1), (x+1,y), (x-1,y)]],
+                  strokes = model.strokes ++ [model.currentStroke]
+             }, Cmd.none)
         UpPosition x y ->
             ({model | x = x, y = y, isDown = False}, Cmd.none)
         Size width height ->
             ({model | height = height, width = width}, Cmd.none)
         ChangeColor color ->
             ({model | currentColor = color}, Cmd.none)
+        ChangeStroke value ->
+            ({model | currentStroke = value}, Cmd.none)
         NoOp ->
             (model, Cmd.none)
 
@@ -106,7 +120,7 @@ makeCoord (x, y) = (toString x) ++ " " ++ (toString y)
 makePathSegment: List (Float, Float) -> String
 makePathSegment coords = "M"  ++ String.join " L " (map makeCoord coords)
 
-makePath p color = path [ d (makePathSegment p), stroke color, fill "none", strokeLinejoin "round", strokeWidth "40" ] []
+makePath p color strokeW = path [ d (makePathSegment p), stroke color, fill "none", strokeLinejoin "round", strokeWidth strokeW ] []
 
 viewDown: List (Float, Float) -> Html a
 viewDown down = Html.div [] (map (\(x,y) -> Html.text ((toString x) ++ "," ++ (toString y))) down)
@@ -123,7 +137,12 @@ getColorBoxStyle color =
         , ("display", "inline-block")
         ]
 
-createColorBox color = Html.div [ (getColorBoxStyle color), onClick (ChangeColor color) ] []
+decoder = (always NoOp) 
+
+createColorBox color = Html.div [
+                        (getColorBoxStyle color)
+                       , (onWithOptions "click" {preventDefault = False, stopPropagation = True} (Json.succeed (ChangeColor color)))
+                       ] []
 
 createColorBoxes colors = map createColorBox colors
 
@@ -133,16 +152,26 @@ colors = ["#2a2c2e", "#e20800", "#d0021b", "#5cbd5c", "#5cb85c", "#6dc20f", "#ff
           "#cccccc", "#969696", "#e5e5e5", "#f5f5f5", "#888888", "#e6e5e5", "#e1e1e1", "#ea4ccb", "#f46c30", "#edbc64",
           "#6495ed", "#f9f0e6"]
 
+rangeSlider v =
+    Html.input
+        [ A.type' "range"
+        , A.min "0"
+        , A.max "40"
+        , value v
+        , onInput ChangeStroke
+        ] []
+
 -- VIEW
 view: Model -> Html Msg
 view model =
     Html.div [] [
       Html.div [] [
            Html.div [] (createColorBoxes colors),
-           Html.input [value model.currentColor, onInput ChangeColor] []
+           Html.input [value model.currentColor, onInput ChangeColor] [],
+           (rangeSlider model.currentStroke)
           ],
       svg [ style [ ( "width", (toString (model.width * 2)) ++ "px" ), ( "height", (toString (model.height * 2)) ++ "px" ) ] ]
           [ g [ transform "translate(0,0)" ]
-              (map2 makePath model.downs model.colors)
+              (map3 makePath model.downs model.colors model.strokes)
           ]
     ]
