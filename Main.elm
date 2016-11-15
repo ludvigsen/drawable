@@ -1,21 +1,13 @@
-import Visualization.Path as P exposing (begin, moveTo, lineTo, close, toAttrString)
-import Svg exposing (svg, g, path)
-import Svg.Attributes exposing (transform, d, stroke, fill, strokeLinejoin, strokeWidth)
 import Html.Attributes as A exposing (style, value)
 import Html exposing (Html, text, div)
-import Html.Events exposing (onInput, onClick, onWithOptions)
 import Html.App as Html
 import Mouse exposing (..)
 import List exposing (..)
 import Window
 import Task
-import Collage
-import Element
-import Color
-import String
-import Json.Decode as Json
 import Model exposing (..)
 import Toolbar exposing (toolbar)
+import Drawing exposing (drawing)
 
 main =
   Html.program
@@ -95,29 +87,10 @@ subscriptions model =
         , Window.resizes (\{width, height} -> Size width height)
         ]
 
-makeCoord: (Float, Float) -> String
-makeCoord (x, y) = (toString x) ++ " " ++ (toString y)
-
-makePathSegment: List (Float, Float) -> String
-makePathSegment coords = "M"  ++ String.join " L " (map makeCoord coords)
-
-makePath p color strokeW = path [ d (makePathSegment p), stroke color, fill "none", strokeLinejoin "round", strokeWidth strokeW ] []
-
-viewDown: List (Float, Float) -> Html a
-viewDown down = Html.div [] (map (\(x,y) -> Html.text ((toString x) ++ "," ++ (toString y))) down)
-
-viewDowns: List (List (Float, Float)) -> Html a
-viewDowns downs = Html.div [] (map viewDown downs)
-
-
-
 -- VIEW
 view: Model -> Html Msg
 view model =
     Html.div [A.class "container"] [
       (toolbar model),
-      svg [ style [ ( "width", (toString (model.width * 1)) ++ "px" ), ( "height", (toString (model.height * 1)) ++ "px" ) ] ]
-          [ g [ transform "translate(0,0)" ]
-              (map3 makePath model.downs model.colors model.strokes)
-          ]
+      (drawing model)
     ]
