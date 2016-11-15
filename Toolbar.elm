@@ -22,6 +22,8 @@ decoder = (always NoOp)
 createColorBox: String -> Html.Html Msg
 createColorBox color = Html.div [
                         (getColorBoxStyle color)
+                       , (onWithOptions "mousedown" {preventDefault = True, stopPropagation = True} (Json.succeed (NoOp)))
+                       , (onWithOptions "mouseup" {preventDefault = True, stopPropagation = True} (Json.succeed (NoOp)))
                        , (onWithOptions "click" {preventDefault = True, stopPropagation = True} (Json.succeed (ChangeColor color)))
                        ] []
 
