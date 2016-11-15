@@ -22,7 +22,7 @@ decoder = (always NoOp)
 createColorBox: String -> Html.Html Msg
 createColorBox color = Html.div [
                         (getColorBoxStyle color)
-                       , (onWithOptions "click" {preventDefault = False, stopPropagation = True} (Json.succeed (ChangeColor color)))
+                       , (onWithOptions "click" {preventDefault = True, stopPropagation = True} (Json.succeed (ChangeColor color)))
                        ] []
 
 createColorBoxes: List String -> List (Html.Html Msg)
