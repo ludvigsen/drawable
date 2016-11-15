@@ -22,8 +22,6 @@ decoder = (always NoOp)
 createColorBox: String -> Html.Html Msg
 createColorBox color = Html.div [
                         (getColorBoxStyle color)
-                       , (onWithOptions "mousedown" {preventDefault = True, stopPropagation = True} (Json.succeed (NoOp)))
-                       , (onWithOptions "mouseup" {preventDefault = True, stopPropagation = True} (Json.succeed (NoOp)))
                        , (onWithOptions "click" {preventDefault = True, stopPropagation = True} (Json.succeed (ChangeColor color)))
                        ] []
 
@@ -59,7 +57,13 @@ toolbarStyle =
     ]
 
 toolbar model =
-    Html.div [toolbarStyle, A.class "toolbar"] [
+    Html.div [
+         toolbarStyle
+        , A.class "toolbar"
+        , (onWithOptions "mousedown" {preventDefault = False, stopPropagation = True} (Json.succeed (NoOp)))
+        , (onWithOptions "mouseup" {preventDefault = False, stopPropagation = True} (Json.succeed (NoOp)))
+        ]
+    [
       Html.div [] (createColorBoxes colors),
       Html.input [value model.currentColor, onInput ChangeColor] [],
       (rangeSlider model.currentStroke)
