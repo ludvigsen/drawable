@@ -11,8 +11,6 @@ import Task
 import Model exposing (..)
 import Toolbar exposing (toolbar)
 import Drawing exposing (drawing)
-import FunctionToggles exposing (..)
-
 
 main =
     Html.program
@@ -27,12 +25,6 @@ main =
 -- MODEL
 
 
-initialFunctionToggles : FunctionToggles
-initialFunctionToggles =
-    { line = False
-    }
-
-
 initialModel : Model
 initialModel =
     { x = 0
@@ -45,7 +37,7 @@ initialModel =
     , isDown = False
     , currentStroke = "40"
     , strokes = []
-    , functionToggles = initialFunctionToggles
+    , functionToggled = NoFunction
     }
 
 
@@ -90,16 +82,11 @@ dot x y =
       ]
     ]
 
-
-update msg model =
-    case msg of
-        Position x y ->
-            if model.isDown then
-                ( { model | x = x, y = y, downs = updateLast model.downs [( x, y )] }, Cmd.none )
-            else
-                ( { model | x = x, y = y }, Cmd.none )
-
-        DownPosition x y ->
+updateDownPosition model x y =
+    case model.functionToggled of
+        Line ->
+            (model, Cmd.none)
+        NoFunction ->
             ( { model
                 | x = x
                 , y = y
@@ -110,6 +97,19 @@ update msg model =
               }
             , Cmd.none
             )
+
+
+
+update msg model =
+    case msg of
+        Position x y ->
+            if model.isDown then
+                ( { model | x = x, y = y, downs = updateLast model.downs [( x, y )] }, Cmd.none )
+            else
+                ( { model | x = x, y = y }, Cmd.none )
+
+        DownPosition x y ->
+            updateDownPosition model x y
 
         UpPosition x y ->
             ( { model | x = x, y = y, isDown = False, downs = updateLast model.downs (M.withDefault [] (head (dot x y))) }, Cmd.none )
@@ -122,6 +122,10 @@ update msg model =
 
         ChangeStroke value ->
             ( { model | currentStroke = value }, Cmd.none )
+
+        ToggleFunction function ->
+            ({ model | functionToggled =
+                   (if model.functionToggled == function then NoFunction else function) }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )

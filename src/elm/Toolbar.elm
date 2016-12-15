@@ -116,4 +116,5 @@ toolbar model =
         [ Html.div [] (createColorBoxes colors)
         , Html.input [ value model.currentColor, onInput ChangeColor, A.type_ "color" ] []
         , (rangeSlider model.currentStroke)
+        , Html.button [onClick (ToggleFunction Line)] [Html.text ("Line tool" ++ (if model.functionToggled == Line then " ON" else " OFF"))]
         ]

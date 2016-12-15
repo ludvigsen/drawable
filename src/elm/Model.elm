@@ -1,7 +1,8 @@
 module Model exposing (..)
 
-import FunctionToggles exposing (..)
-
+type Function
+    = Line
+    | NoFunction
 
 type alias Model =
     { x : Float
@@ -14,7 +15,7 @@ type alias Model =
     , isDown : Bool
     , currentStroke : String
     , strokes : List String
-    , functionToggles : FunctionToggles
+    , functionToggled: Function
     }
 
 
@@ -25,4 +26,5 @@ type Msg
     | Size Int Int
     | ChangeColor String
     | ChangeStroke String
+    | ToggleFunction Function
     | NoOp
