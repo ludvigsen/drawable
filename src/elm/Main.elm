@@ -5,6 +5,7 @@ import Html exposing (Html, text, div)
 import Html
 import Mouse exposing (..)
 import List exposing (..)
+import Maybe as M
 import Window
 import Task
 import Model exposing (..)
@@ -73,7 +74,7 @@ updateLast xs x =
                 Nothing ->
                     []
     in
-        list ++ [ (last ++ [ x ]) ]
+        list ++ [ (last ++ x ) ]
 
 
 dot x y =
@@ -94,7 +95,7 @@ update msg model =
     case msg of
         Position x y ->
             if model.isDown then
-                ( { model | x = x, y = y, downs = updateLast model.downs ( x, y ) }, Cmd.none )
+                ( { model | x = x, y = y, downs = updateLast model.downs [( x, y )] }, Cmd.none )
             else
                 ( { model | x = x, y = y }, Cmd.none )
 
@@ -111,7 +112,7 @@ update msg model =
             )
 
         UpPosition x y ->
-            ( { model | x = x, y = y, isDown = False, downs = model.downs ++ (dot x y) }, Cmd.none )
+            ( { model | x = x, y = y, isDown = False, downs = updateLast model.downs (M.withDefault [] (head (dot x y))) }, Cmd.none )
 
         Size width height ->
             ( { model | height = height, width = width }, Cmd.none )
@@ -142,7 +143,6 @@ subscriptions model =
 
 
 -- VIEW
-
 
 view : Model -> Html Msg
 view model =
