@@ -22,7 +22,7 @@ makePath p color strokeW =
 
 
 drawing model =
-    svg [ style [ ( "width", (toString (model.width * 1)) ++ "px" ), ( "height", (toString (model.height * 1)) ++ "px" ) ] ]
+    svg [ A.id "image", style [ ( "width", (toString (model.width * 1)) ++ "px" ), ( "height", (toString (model.height * 1)) ++ "px" ) ] ]
         [ g [ transform "translate(0,0)" ]
             (map3 makePath model.downs model.colors model.strokes)
         ]

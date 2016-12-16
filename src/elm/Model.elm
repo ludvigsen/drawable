@@ -27,4 +27,5 @@ type Msg
     | ChangeColor String
     | ChangeStroke String
     | ToggleFunction Function
+    | Save
     | NoOp

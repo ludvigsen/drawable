@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html.Attributes as A exposing (style, value)
 import Html exposing (Html, text, div)
@@ -99,6 +99,7 @@ updateDownPosition model x y =
             )
 
 
+port save : String -> Cmd msg
 
 update msg model =
     case msg of
@@ -122,11 +123,11 @@ update msg model =
 
         ChangeStroke value ->
             ( { model | currentStroke = value }, Cmd.none )
-
         ToggleFunction function ->
             ({ model | functionToggled =
                    (if model.functionToggled == function then NoFunction else function) }, Cmd.none )
-
+        Save ->
+            (model, save "Save")
         NoOp ->
             ( model, Cmd.none )
 
