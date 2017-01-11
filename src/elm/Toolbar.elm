@@ -3,7 +3,7 @@ module Toolbar exposing (toolbar)
 import Html.Attributes as A exposing (style, value)
 import Model exposing (..)
 import Html
-import Html.Events exposing (onInput, onClick, onWithOptions)
+import Html.Events exposing (onInput, onClick, onWithOptions, on)
 import List exposing (..)
 import Json.Decode as Json
 
@@ -116,5 +116,6 @@ toolbar model =
         , Html.input [ value model.currentColor, onInput ChangeColor, A.type_ "color" ] []
         , (rangeSlider model.currentStroke)
         , Html.button [onClick (ToggleFunction Line)] [Html.text ("Line tool" ++ (if model.functionToggled == Line then " ON" else " OFF"))]
-        , Html.button [onClick (Save)] [Html.text "Save"]
+        , Html.button [onClick Save] [Html.text "Save"]
+        , Html.button [onClick Load] [Html.text "Load"]
         ]

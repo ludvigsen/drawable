@@ -4,10 +4,12 @@
     "repository": "https://github.com/ludvigsen/elm-paint.git",
     "license": "BSD3",
     "source-directories": [
-        "src/elm"
+      "src/elm"
     ],
     "exposed-modules": [],
+    "native-modules": true,
     "dependencies": {
+        "Bogdanp/elm-combine": "3.1.1 <= v < 4.0.0",
         "elm-lang/core": "5.0.0 <= v < 6.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
         "elm-lang/mouse": "1.0.1 <= v < 2.0.0",

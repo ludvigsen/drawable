@@ -38,6 +38,21 @@ require( './styles/main.scss' );
 var Elm = require( '../elm/Main' );
 var app = Elm.Main.embed( document.getElementById( 'main' ) );
 app.ports.save.subscribe(function (){
-  console.log('test');
   exportSVG(document.getElementById('image'));
+});
+
+app.ports.load.subscribe(function () {
+  var file = document.createElement('input');
+  file.type = 'file';
+  document.body.appendChild(file);
+  file.click();
+  file.addEventListener('change', function(ev){
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var content = e.target.result;
+      app.ports.loadedSvg.send(content);
+    };
+    reader.readAsText(ev.target.files[0]);
+  });
+  document.body.removeChild(file);
 });
