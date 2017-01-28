@@ -188,3 +188,14 @@ parse str =
       Result.Ok xml
     Err (_, stream, ms) ->
       Result.Err <| formatError ms stream
+
+unwrapSvg result =
+    case result of
+        (Ok [svg]) ->
+            case svg of
+                Tag "svg" _ children ->
+                    children
+                _ ->
+                    []
+        _ ->
+            []
