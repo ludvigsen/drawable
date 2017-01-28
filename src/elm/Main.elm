@@ -82,27 +82,48 @@ updatePathValue value x y =
         (D elms) -> (D (elms ++ [(L x y)]))
         _ -> value
 
+updateValueHelper : (String, Value) -> (String, Value) -> (String, Value)
+updateValueHelper (key, value) (newKey, newValue) =
+    if key == newKey then
+        (newKey, newValue)
+     else
+         (key, value)
+
+updateValue : List (String, Value) -> (String, Value) -> List (String, Value)
+updateValue xs (newKey, newValue) =
+    List.map (\(key, value) -> (key, (if key == newKey then newValue else value))) xs
+--(updateValueHelper value) xs
+
 updateCurrentObjectHelper : SvgAst -> Float -> Float -> SvgAst
 updateCurrentObjectHelper object x y =
     case object of
         Tag "path" attrs objs ->
             Tag "path" (List.map (\(key, value) -> (key, updatePathValue value x y)) attrs) objs
+        Tag "rect" attrs objs ->
+            let currentX = Result.withDefault x (String.toFloat (getValue attrs "x"))
+                currentY = Result.withDefault y (String.toFloat (getValue attrs "y"))
+                height = Result.withDefault 0 (String.toFloat (getValue attrs "height"))
+                width = Result.withDefault 0 (String.toFloat (getValue attrs "width")) in
+            let newX = (if x < currentX then x else currentX)
+                newY = (if y < currentY then y else currentY)
+                newWidth = (if x < currentX then width + (1) else x - currentX)
+                newHeight = (if y < currentY then height + (1) else y - currentY) in
+
+                Tag "rect" (updateValue (updateValue (updateValue (updateValue attrs ("height", Value (toString newHeight))) ("width", Value (toString newWidth))) ("x", Value (toString newX))) ("y", Value (toString newY))) objs
         _ -> object
 
-
 updateCurrentObject model x y =
-    case model.functionToggled of
-        Line ->
-            (model, Cmd.none)
-        NoFunction ->
-            ( { model
-                | x = x
-                , y = y
-                , currentObject = Just (updateCurrentObjectHelper (M.withDefault defaultObject model.currentObject) x y)
-              }
-            , Cmd.none
-            )
-
+    { model
+        | x = x
+        , y = y
+        , currentObject = Just (updateCurrentObjectHelper (M.withDefault defaultObject model.currentObject) x y)
+    }
+updateLastPointOfCurrentObject model x y =
+    { model
+        | x = x
+        , y = y
+        , currentObject = Just (updateCurrentObjectHelper (M.withDefault defaultObject model.currentObject) x y)
+    }
 
 port save : String -> Cmd msg
 port load : String -> Cmd msg
@@ -140,16 +161,53 @@ insertCurrentObject svg object =
             parseAst svg obj
         Nothing -> svg
 
+newObjectAtPosition : Model -> Float -> Float -> Model
+newObjectAtPosition model x y =
+    { model | isDown = True, currentObject = Just (Tag "path" [("stroke-width", Value model.currentStroke), ("stroke", Value model.currentColor), ("fill", Value "none"), ("stroke-linejoin", Value "round"), ("d", D [M x y])] []) }
+
+newRectAtPosition : Model -> Float -> Float -> Model
+newRectAtPosition model x y =
+    { model | isDown = True, currentObject = Just (Tag "rect" [("stroke-width", Value model.currentStroke), ("stroke", Value model.currentColor), ("fill", Value model.currentColor), ("stroke-linejoin", Value "round"), ("x", Value (toString x)), ("y", Value (toString y)), ("width", Value "0"), ("height", Value "0")] []) }
+
 updateDownPosition : Model -> Float -> Float -> Model
 updateDownPosition model x y =
-    { model | isDown = True, currentObject = Just (Tag "path" [("stroke-width", Value model.currentStroke), ("stroke", Value model.currentColor), ("fill", Value "none"), ("stroke-linejoin", Value "round"), ("d", D [M x y])] []) }
+    case model.functionToggled of
+        Line ->
+            model
+        Rect ->
+            newRectAtPosition model x y
+        NoFunction ->
+            newObjectAtPosition model x y
+
+updateUpPosition : Model -> Float -> Float -> Model
+updateUpPosition model x y =
+    case model.functionToggled of
+        Line ->
+            case model.currentObject of
+                Nothing ->
+                    newObjectAtPosition model x y
+                Just object ->
+                    updateCurrentObject model x y
+        Rect ->
+            { model | x = x, y = y, isDown = False, currentObject = Nothing,
+               svg = insertCurrentObject model.svg model.currentObject }
+
+        NoFunction ->
+            { model | x = x, y = y, isDown = False, currentObject = Nothing,
+               svg = insertCurrentObject model.svg model.currentObject }
 
 update : Msg -> Model -> (Model, Cmd msg)
 update msg model =
     case msg of
         Position x y ->
             if model.isDown then
-                updateCurrentObject model x y
+                case model.functionToggled of
+                    NoFunction ->
+                        (updateCurrentObject model x y, Cmd.none)
+                    Line ->
+                        (updateLastPointOfCurrentObject model x y, Cmd.none)
+                    Rect ->
+                        (updateCurrentObject model x y, Cmd.none)
             else
                 ( { model | x = x, y = y }, Cmd.none )
 
@@ -157,8 +215,7 @@ update msg model =
             (updateDownPosition model x y, Cmd.none)
 
         UpPosition x y ->
-            ({ model | x = x, y = y, isDown = False, currentObject = Nothing,
-               svg = insertCurrentObject model.svg model.currentObject }, Cmd.none)
+            (updateUpPosition model x y, Cmd.none)
 
         LoadedSVG html ->
             ( { model | svg = (unwrapSvg (parse html)) }, Cmd.none)
@@ -184,8 +241,6 @@ update msg model =
 
 
 -- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch

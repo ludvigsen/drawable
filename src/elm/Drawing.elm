@@ -2,7 +2,7 @@ module Drawing exposing (drawing)
 
 import List exposing (..)
 import Model exposing (..)
-import Svg exposing (svg, g, path)
+import Svg exposing (svg, g, path, rect)
 import Svg.Attributes exposing (transform, d, stroke, fill, strokeLinejoin, strokeWidth)
 import Html.Attributes as A exposing (style, value, attribute)
 import Html
@@ -52,6 +52,8 @@ drawSvgAst svgs =
             g (parseAttributes attrs) (drawSvgAsts objs)
         (ParseSVG.Tag "path" attrs _) ->
             path (parseAttributes attrs) []
+        (ParseSVG.Tag "rect" attrs _) ->
+            rect (parseAttributes attrs) []
         _ -> Svg.desc [] []
 
 drawSvgAsts = map drawSvgAst

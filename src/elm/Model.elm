@@ -1,11 +1,9 @@
 module Model exposing (..)
-import Html exposing (Attribute)
-import Svg exposing (Svg)
-import Result
 import ParseSVG exposing (SvgAst)
 
 type Function
     = Line
+    | Rect
     | NoFunction
 
 type Shape =
