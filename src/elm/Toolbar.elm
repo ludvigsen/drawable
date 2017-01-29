@@ -6,6 +6,9 @@ import Html
 import Html.Events exposing (onInput, onClick, onWithOptions, on)
 import List exposing (..)
 import Json.Decode as Json
+-- import Material.Icons.Content exposing (save)
+import Color exposing (black)
+import FontAwesome exposing (floppy_o, folder_open)
 
 
 getColorBoxStyle : String -> Html.Attribute a
@@ -117,6 +120,6 @@ toolbar model =
         , (rangeSlider model.currentStroke)
         , Html.button [onClick (ToggleFunction Line)] [Html.text ("Line tool" ++ (if model.functionToggled == Line then " ON" else " OFF"))]
         , Html.button [onClick (ToggleFunction Rect)] [Html.text ("Rect tool" ++ (if model.functionToggled == Rect then " ON" else " OFF"))]
-        , Html.button [onClick Save] [Html.text "Save"]
-        , Html.button [onClick Load] [Html.text "Load"]
+        , Html.button [onClick Save] [(floppy_o black 20)]
+        , Html.button [onClick Load] [folder_open black 20]
         ]

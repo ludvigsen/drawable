@@ -90,8 +90,8 @@ updateValueHelper (key, value) (newKey, newValue) =
      else
          (key, value)
 
-updateValue : List (String, Value) -> (String, Value) -> List (String, Value)
-updateValue xs (newKey, newValue) =
+updateValue : (String, Value) -> List (String, Value) -> List (String, Value)
+updateValue (newKey, newValue) xs =
     List.map (\(key, value) -> (key, (if key == newKey then newValue else value))) xs
 
 updateCurrentObjectHelper : SvgAst -> Float -> Float -> SvgAst
@@ -108,8 +108,7 @@ updateCurrentObjectHelper object x y =
                 newY = (if y < currentY then y else currentY)
                 newWidth = (if x < currentX then width + (currentX - x) else x - currentX)
                 newHeight = (if y < currentY then height + (currentY - y) else y - currentY) in
-
-                Tag "rect" (updateValue (updateValue (updateValue (updateValue attrs ("height", Value (toString newHeight))) ("width", Value (toString newWidth))) ("x", Value (toString newX))) ("y", Value (toString newY))) objs
+                Tag "rect" (updateValue ("y", Value (toString newY)) attrs |> updateValue ("height", Value (toString newHeight)) |> updateValue ("width", Value (toString newWidth)) |> updateValue ("x", Value (toString newX))) objs
         _ -> object
 
 
