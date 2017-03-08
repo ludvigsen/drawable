@@ -1,7 +1,7 @@
 {
-  "name": "elm-paint",
+  "name": "drawable",
   "version": "1.0.0",
-  "description": "Draw stuff!",
+  "description": "Collaborative drawing",
   "main": "webpack.config.js",
   "scripts": {
     "start": "webpack-dev-server --hot --inline --content-base src/",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ludvigsen/elm-paint.git"
+    "url": "git+https://github.com/ludvigsen/drawable.git"
   },
   "author": "Marius Skaar Ludvigsen",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ludvigsen/elm-paint/issues"
+    "url": "https://github.com/ludvigsen/drawable/issues"
   },
-  "homepage": "https://github.com/ludvigsen/elm-paint#readme",
+  "homepage": "https://github.com/ludvigsen/drawable#readme",
   "devDependencies": {
     "autoprefixer": "^6.5.4",
     "copy-webpack-plugin": "^4.0.1",

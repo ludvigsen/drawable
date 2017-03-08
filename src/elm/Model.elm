@@ -1,23 +1,29 @@
 module Model exposing (..)
-import ParseSVG exposing (SvgAst)
+--import ParseSVG exposing (SvgAst)
+import Uuid
+import SvgAst exposing (SvgAst)
 
 type Function
     = Line
     | Rect
-    | NoFunction
+    | Select
+    | Draw
+    | Circle
 
-type Shape =
-    Path (List (Float, Float))
+--type Shape =
+    --Path (List (Float, Float))
 
-type alias DrawingObject =
+{- type alias DrawingObject =
     { color : String
     , stroke : String
     , shape : Shape
-    }
+    } -}
 
 type alias Model =
     { x : Float
     , y : Float
+    , downX : Float
+    , downY : Float
     , width : Int
     , height : Int
     , currentColor : String
@@ -25,8 +31,13 @@ type alias Model =
     , currentStroke : String
     , svg : List SvgAst
     , currentObject : Maybe SvgAst
+    , currentId : Int
+    , selectedId : Int
+    , selected : List SvgAst
     --, objects : List DrawingObject
     , functionToggled: Function
+    , test : String
+    , uuid: Maybe Uuid.Uuid
     --, loadedSvg : List SvgAst
     }
 
@@ -42,4 +53,8 @@ type Msg
     | Save
     | Load
     | LoadedSVG String
+    | NewMessage String
+    | SendMessage String
+    | NewSeed Int
+    | SelectElement String
     | NoOp

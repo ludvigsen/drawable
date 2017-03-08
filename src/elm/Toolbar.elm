@@ -118,8 +118,11 @@ toolbar model =
         [ Html.div [] (createColorBoxes colors)
         , Html.input [ value model.currentColor, onInput ChangeColor, A.type_ "color" ] []
         , (rangeSlider model.currentStroke)
+        , Html.button [onClick (ToggleFunction Select)] [Html.text ("Select " ++ (if model.functionToggled == Select then " ON" else " OFF"))]
+        , Html.button [onClick (ToggleFunction Draw)] [Html.text ("Draw " ++ (if model.functionToggled == Draw then " ON" else " OFF"))]
         , Html.button [onClick (ToggleFunction Line)] [Html.text ("Line tool" ++ (if model.functionToggled == Line then " ON" else " OFF"))]
         , Html.button [onClick (ToggleFunction Rect)] [Html.text ("Rect tool" ++ (if model.functionToggled == Rect then " ON" else " OFF"))]
+        , Html.button [onClick (ToggleFunction Circle)] [Html.text ("Circle tool" ++ (if model.functionToggled == Circle then " ON" else " OFF"))]
         , Html.button [onClick Save] [(floppy_o black 20)]
         , Html.button [onClick Load] [folder_open black 20]
         ]

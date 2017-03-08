@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "Draw stuff",
-    "repository": "https://github.com/ludvigsen/elm-paint.git",
+    "summary": "Collaborative drawing",
+    "repository": "https://github.com/ludvigsen/drawable.git",
     "license": "BSD3",
     "source-directories": [
         "src/elm"
@@ -10,15 +10,19 @@
     "native-modules": true,
     "dependencies": {
         "Bogdanp/elm-combine": "3.1.1 <= v < 4.0.0",
+        "danyx23/elm-uuid": "2.0.2 <= v < 3.0.0",
         "elm-community/elm-material-icons": "2.0.1 <= v < 3.0.0",
         "elm-lang/core": "5.0.0 <= v < 6.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
         "elm-lang/mouse": "1.0.1 <= v < 2.0.0",
         "elm-lang/svg": "2.0.0 <= v < 3.0.0",
+        "elm-lang/websocket": "1.0.2 <= v < 2.0.0",
         "elm-lang/window": "1.0.1 <= v < 2.0.0",
         "evancz/elm-graphics": "1.0.1 <= v < 2.0.0",
         "gampleman/elm-visualization": "1.1.0 <= v < 2.0.0",
-        "jystic/elm-font-awesome": "2.0.1 <= v < 3.0.0"
+        "jystic/elm-font-awesome": "2.0.1 <= v < 3.0.0",
+        "mgold/elm-random-pcg": "4.0.2 <= v < 5.0.0",
+        "ludvigsen/elm-svg-ast": "1.0.0 <= v < 2.0.0"
     },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
