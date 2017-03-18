@@ -120,6 +120,11 @@ getDElement elem =
 
 snd (_, val) = val
 
+unpackVal val =
+    case val of
+        S.Value str -> str
+        _ -> ""
+
 getAttrsForPath : D.Dict S.Key S.Value -> List (Svg.Attribute msg)
 getAttrsForPath attrs =
     let d = D.get "d" attrs in
@@ -128,8 +133,9 @@ getAttrsForPath attrs =
             let x = (getMinX ds) - 10
                 y = (getMinY ds) - 10
                 width = ((getMaxX ds) - x) + 10
-                height = ((getMaxY ds) - y) + 10 in
-            [SA.x (toString x), SA.y (toString y), SA.width (toString width), SA.height (toString height)]
+                height = ((getMaxY ds) - y) + 10
+                transform = D.get "transform" attrs |> M.withDefault (S.Value "") |> unpackVal in
+            [SA.x (toString x), SA.y (toString y), SA.width (toString width), SA.height (toString height), SA.transform transform]
         _ -> []
 
 getIntAttr : String -> D.Dict S.Key S.Value -> Int

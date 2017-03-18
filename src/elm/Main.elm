@@ -190,7 +190,7 @@ view model =
     Html.div [ A.class "container" ]
         [
          -- Html.div [] [(Html.button [onClick (SendMessage <| M.withDefault "" <| M.map ((++) "Hi! I am ") <| M.map Uuid.toString model.uuid)] [Html.text "msg"]), (Html.button [onClick (SendMessage "12321")] [Html.text "msg2"])]
-        --, toHtml (show (model))
+         --toHtml (show (model)),
         --, Html.div [] [Html.text model.test]
          (toolbar model)
         , drawing model
