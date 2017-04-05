@@ -1,4 +1,4 @@
-module Toolbar exposing (toolbar)
+module Views.Toolbar exposing (toolbar)
 
 import Html.Attributes as A exposing (style, value)
 import Model exposing (..)
@@ -106,6 +106,7 @@ toolbarStyle =
         , ( "right", "0" )
         , ( "width", "10rem" )
         , ( "z-index", "1" )
+        , ( "background-color", "white" )
         ]
 
 toolbar model =

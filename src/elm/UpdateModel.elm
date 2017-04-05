@@ -1,6 +1,7 @@
-module UpdateModel exposing (updatePosition, updateDownPosition, updateUpPosition, updateSelected)
+module UpdateModel exposing (updatePosition, updateDownPosition, updateUpPosition, updateKeyDown)
 
 import SvgAst as S
+import SvgAstOperations exposing (getBoundingRect)
 
 
 --import ParseSVG exposing (..)
@@ -11,6 +12,8 @@ import Maybe as M
 import Html.Attributes as A
 import Dict as D
 import Result as R
+import Char
+import Keyboard exposing (KeyCode)
 
 
 updateLast xs x =
@@ -249,23 +252,88 @@ newCircleAtPosition model x y =
     { model | isDown = True, currentObject = Just (S.Tag "ellipse" (D.fromList [ ( "stroke-width", S.Value model.currentStroke ), ( "stroke", S.Value model.currentColor ), ( "stroke-linejoin", S.Value "round" ), ( "cx", S.Value (toString x) ), ( "cy", S.Value (toString y) ), ( "rx", S.Value "0" ), ( "ry", S.Value "0" ) ]) []), downX = x, downY = y }
 
 
+intersects : ( Float, Float, Float, Float ) -> S.SvgAst -> Bool
+intersects ( x1, y1, x2, y2 ) ast =
+    case ast of
+        S.Tag name attributes _ ->
+            let
+                ( ix1, iy1, ix2, iy2 ) =
+                    getBoundingRect ast |> M.withDefault ( 0, 0, 0, 0 )
+            in
+                if
+                    ((x1 <= ix1 && ix1 <= x2) || (x1 <= ix2 && ix2 <= x2))
+                        && ((y1 <= iy1 && iy1 <= y2) || (y1 <= iy2 && iy2 <= y2))
+                then
+                    True
+                else
+                    False
+
+        _ ->
+            False
+
+
+isInside : Maybe ( Float, Float, Float, Float ) -> Float -> Float -> Bool
+isInside rect x y =
+    case rect of
+        Just ( x1, y1, x2, y2 ) ->
+            if x < x1 || x > x2 || y < y1 || y > y2 then
+                False
+            else
+                True
+
+        Nothing ->
+            False
+
+
 updateDownPosition : Model -> Float -> Float -> Model
 updateDownPosition model x y =
-    case model.functionToggled of
-        Line ->
-            model
+    if isInside (Just ( toFloat model.width, toFloat model.height, toFloat (model.width + 20), toFloat (model.height + 20) )) x y then
+        { model | resizing = True }
+    else
+        case model.functionToggled of
+            Line ->
+                model
 
-        Rect ->
-            newRectAtPosition model x y
+            Rect ->
+                newRectAtPosition model x y
 
-        Circle ->
-            newCircleAtPosition model x y
+            Circle ->
+                newCircleAtPosition model x y
 
-        Draw ->
-            newObjectAtPosition model x y
+            Draw ->
+                newObjectAtPosition model x y
 
-        Select ->
-            { model | isDown = True, downX = x, downY = y }
+            Select ->
+                let
+                    selected =
+                        L.map
+                            (S.fold
+                                (\ast asts ->
+                                    if isInside (getBoundingRect ast) x y then
+                                        (ast :: asts)
+                                    else
+                                        asts
+                                )
+                                []
+                            )
+                            model.svg
+                            |> L.concat
+
+                    selectedIds =
+                        L.map (\ast -> (S.getAttributeString "id" ast) |> M.withDefault "-1") selected
+                in
+                    { model
+                        | isDown = True
+                        , downX = x
+                        , downY = y
+                        , selected =
+                            if L.length model.selected > 1 && L.length selected > 0 then
+                                model.selected
+                            else
+                                selected
+                        , selectedIds = selectedIds
+                        , selecting = L.length selected == 0
+                    }
 
 
 updateUpPosition : Model -> Float -> Float -> Model
@@ -284,6 +352,7 @@ updateUpPosition model x y =
                 | x = x
                 , y = y
                 , isDown = False
+                , resizing = False
                 , currentObject = Nothing
                 , currentId = model.currentId + 1
                 , svg = insertCurrentObject model.svg model.currentObject model.currentId
@@ -294,6 +363,7 @@ updateUpPosition model x y =
                 | x = x
                 , y = y
                 , isDown = False
+                , resizing = False
                 , currentObject = Nothing
                 , currentId = model.currentId + 1
                 , svg = insertCurrentObject model.svg model.currentObject model.currentId
@@ -304,13 +374,14 @@ updateUpPosition model x y =
                 | x = x
                 , y = y
                 , isDown = False
+                , resizing = False
                 , currentObject = Nothing
                 , currentId = model.currentId + 1
                 , svg = insertCurrentObject model.svg model.currentObject model.currentId
             }
 
         Select ->
-            { model | isDown = False }
+            { model | isDown = False, selecting = False, resizing = False }
 
 
 valueToInt : S.Value -> Int
@@ -374,9 +445,9 @@ updateAst new ast =
     S.map (updateIfSameId new) ast
 
 
-updateAsts : List S.SvgAst -> S.SvgAst -> List S.SvgAst
-updateAsts asts new =
-    L.map (updateAst new) asts
+updateAsts : List S.SvgAst -> List S.SvgAst -> List S.SvgAst
+updateAsts asts newAsts =
+    L.foldr (\ast updated -> L.map (updateAst ast) updated) asts newAsts
 
 
 addToValue : Float -> S.Value -> S.Value
@@ -419,8 +490,16 @@ shiftObject x dx y dy obj =
 
                 pathY =
                     D.get "d" attr |> M.withDefault (S.D []) |> mtoy
+
+                transform =
+                    Debug.log "transform" (S.getStringAttribute "transform" attr |> M.withDefault "" |> String.split "," |> L.map (String.filter (\c -> (Char.isDigit c) || (c == '-'))) |> L.map String.toFloat |> L.map (R.withDefault 0))
             in
-                S.Tag "path" (D.update "transform" (\_ -> Just (S.Value ("translate(" ++ (toString (x - pathX)) ++ "," ++ (toString (y - pathY)) ++ ")"))) attr) objs
+                case transform of
+                    [ transformX, transformY ] ->
+                        S.Tag "path" (D.update "transform" (\_ -> Just (S.Value ("translate(" ++ (toString (transformX + (x - dx))) ++ "," ++ (toString (transformY + (y - dy))) ++ ")"))) attr) objs
+
+                    _ ->
+                        S.Tag "path" (D.update "transform" (\_ -> Just (S.Value ("translate(" ++ (toString (x - dx)) ++ "," ++ (toString (y - dy)) ++ ")"))) attr) objs
 
         _ ->
             (S.updateAttribute "x" (addToValue (x - dx)) >> S.updateAttribute "y" (addToValue (y - dy))) obj
@@ -432,36 +511,76 @@ shiftObjects x dx y dy =
 
 
 updateSelectedObject model x y =
-    let
-        selected =
-            selectedElements model.svg model.selectedId
+    if model.selecting then
+        let
+            selected =
+                L.map
+                    (S.fold
+                        (\ast asts ->
+                            if intersects ( model.downX, model.downY, x, y ) ast then
+                                Debug.log "ASTS: " (ast :: asts)
+                            else
+                                asts
+                        )
+                        []
+                    )
+                    model.svg
+                    |> L.concat
+        in
+            { model | x = x, y = y, selected = selected }
+    else
+        let
+            updatedSelected =
+                Debug.log "updateSelected: " <| shiftObjects x model.downX y model.downY model.selected
+        in
+            { model | svg = updateAsts model.svg updatedSelected, downY = y, downX = x, selected = updatedSelected }
 
-        updatedSelected =
-            shiftObjects x model.downX y model.downY selected
-    in
-        { model | svg = updateAsts model.svg (L.head updatedSelected |> M.withDefault (S.Comment "default")), downY = y, downX = x, selected = selected }
 
-
+updatePosition : Model -> Float -> Float -> Model
 updatePosition model x y =
     if model.isDown then
-        case model.functionToggled of
-            Draw ->
-                updateCurrentObject model x y
+        if model.resizing then
+            { model | width = truncate ((toFloat model.width) + (x - model.downX)), height = truncate ((toFloat model.height) + (y - model.downY)), downX = x, downY = y }
+        else
+            case model.functionToggled of
+                Draw ->
+                    updateCurrentObject model x y
 
-            Line ->
-                updateLastPointOfCurrentObject model x y
+                Line ->
+                    updateLastPointOfCurrentObject model x y
 
-            Rect ->
-                updateCurrentObject model x y
+                Rect ->
+                    updateCurrentObject model x y
 
-            Circle ->
-                updateCurrentObject model x y
+                Circle ->
+                    updateCurrentObject model x y
 
-            Select ->
-                updateSelectedObject model x y
+                Select ->
+                    updateSelectedObject model x y
     else
         { model | x = x, y = y }
 
 
-updateSelected model id =
-    { model | selectedId = Result.withDefault -1 (String.toInt id), test = id }
+--updateId : List S.SvgAst -> List S.SvgAst
+--updateId xs =
+
+paste : List S.SvgAst -> List S.SvgAst -> Float -> Float -> List S.SvgAst
+paste selected ast x y =
+    (S.Tag "g" (D.fromList [("transform", S.Value ("translate(" ++ (toString (x)) ++ "," ++ (toString (y)) ++ ")"))]) selected)::ast
+
+
+updateKeyDown : Model -> KeyCode -> Model
+updateKeyDown model code =
+    case Debug.log "keydown" model.currentKey of
+        91 ->
+            case Debug.log "KEYDOWN" code of
+                -- Copy
+                67 ->
+                    {model | clipboard = model.selected }
+                -- Paste
+                86 ->
+                    {model | svg = paste model.clipboard model.svg model.x model.y }
+                _ ->
+                    model
+        _ ->
+          { model | currentKey = code }

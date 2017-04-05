@@ -1,7 +1,9 @@
 module Model exposing (..)
---import ParseSVG exposing (SvgAst)
+
 import Uuid
 import SvgAst exposing (SvgAst)
+import Keyboard exposing (KeyCode)
+
 
 type Function
     = Line
@@ -10,14 +12,6 @@ type Function
     | Draw
     | Circle
 
---type Shape =
-    --Path (List (Float, Float))
-
-{- type alias DrawingObject =
-    { color : String
-    , stroke : String
-    , shape : Shape
-    } -}
 
 type alias Model =
     { x : Float
@@ -32,13 +26,15 @@ type alias Model =
     , svg : List SvgAst
     , currentObject : Maybe SvgAst
     , currentId : Int
-    , selectedId : Int
+    , selectedIds : List String
     , selected : List SvgAst
-    --, objects : List DrawingObject
-    , functionToggled: Function
+    , functionToggled : Function
     , test : String
-    , uuid: Maybe Uuid.Uuid
-    --, loadedSvg : List SvgAst
+    , uuid : Maybe Uuid.Uuid
+    , selecting : Bool
+    , resizing : Bool
+    , currentKey : KeyCode
+    , clipboard : List SvgAst
     }
 
 
@@ -57,4 +53,6 @@ type Msg
     | SendMessage String
     | NewSeed Int
     | SelectElement String
+    | Resize String
+    | KeyDown KeyCode
     | NoOp

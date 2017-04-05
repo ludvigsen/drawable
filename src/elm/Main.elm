@@ -10,7 +10,7 @@ import Result as R
 import Window
 import Task
 import Model exposing (..)
-import Toolbar exposing (toolbar)
+import Views.Toolbar exposing (toolbar)
 import SvgAst as S
 import SvgAst.Parser as SP
 import SvgAst.Render exposing (render)
@@ -26,9 +26,12 @@ import Random.Pcg exposing (step, initialSeed)
 import Element exposing (show, toHtml)
 import Svg
 import Svg.Attributes as SA
-import Drawing exposing (drawing)
+import Views.Drawing exposing (drawing)
 import List as L
 import Dict as D
+import Css exposing (..)
+import Keyboard as K
+
 
 main =
     Html.program
@@ -38,7 +41,11 @@ main =
         , subscriptions = subscriptions
         }
 
+
+
 -- MODEL
+
+
 initialModel : Model
 initialModel =
     { x = 0
@@ -56,144 +63,218 @@ initialModel =
     , test = "test"
     , uuid = Nothing
     , currentId = 0
-    , selectedId = -1
+    , selectedIds = []
     , selected = []
+    , selecting = False
+    , resizing = True
+    , currentKey = -1
+    , clipboard = []
     }
 
-init : ( Model , Cmd Msg )
+
+init : ( Model, Cmd Msg )
 init =
-    (
-      initialModel
-    , Cmd.batch [
-           Task.perform (\size -> Size size.width size.height) Window.size
-         , Random.generate NewSeed (Random.int Random.minInt Random.maxInt)]
+    ( initialModel
+    , Cmd.batch
+        [ Task.perform (\size -> Size size.width size.height) Window.size
+        , Random.generate NewSeed (Random.int Random.minInt Random.maxInt)
+        ]
     )
 
+
+
 -- PORTS
+
+
 port save : String -> Cmd msg
+
+
 port load : String -> Cmd msg
+
+
 port loadedSvg : (String -> msg) -> Sub msg
 
 
 sendInsertMessage : Model -> String
 sendInsertMessage model =
     JE.encode 0 <|
-    JE.object [
-         ("event", JE.string "insert")
-       , ("payload", (M.withDefault JE.null (M.map SE.encode model.currentObject)))
-        ]
+        JE.object
+            [ ( "event", JE.string "insert" )
+            , ( "payload", (M.withDefault JE.null (M.map SE.encode model.currentObject)) )
+            ]
+
 
 sendConnectMessage : Uuid.Uuid -> String
 sendConnectMessage uuid =
     JE.encode 0 <|
-    JE.object [
-         ("event", JE.string "connect")
-       , ("payload", JE.string <| Uuid.toString uuid)
-        ]
+        JE.object
+            [ ( "event", JE.string "connect" )
+            , ( "payload", JE.string <| Uuid.toString uuid )
+            ]
 
-type alias Event = {
-        event: String,
-        payload: Maybe S.SvgAst
+
+type alias Event =
+    { event : String
+    , payload : Maybe S.SvgAst
     }
 
-defaultEvent: Event
-defaultEvent = {
-    event = "",
-    payload = Nothing
-  }
+
+defaultEvent : Event
+defaultEvent =
+    { event = ""
+    , payload = Nothing
+    }
+
 
 decodeEvent : String -> Result String Event
 decodeEvent str =
     JD.decodeString
         (JD.map2 Event
-             (JD.field "event" JD.string)
-             (JD.field "payload" (JD.map Just SD.decode))) str
+            (JD.field "event" JD.string)
+            (JD.field "payload" (JD.map Just SD.decode))
+        )
+        str
+
+
 
 -- UPDATE
-update : Msg -> Model -> (Model, Cmd msg)
+
+
+update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
+        KeyDown code ->
+            ( updateKeyDown model code, Cmd.none )
+
+        Resize s ->
+            ( model, Cmd.none )
+
         Position x y ->
-            (updatePosition model x y, Cmd.none)
+            ( updatePosition model x y, Cmd.none )
+
         DownPosition x y ->
-            (updateDownPosition model x y, Cmd.none)
+            ( updateDownPosition model x y, Cmd.none )
 
         UpPosition x y ->
-            (updateUpPosition model x y, WebSocket.send "ws://localhost:9160/" (sendInsertMessage model))
+            ( updateUpPosition model x y, WebSocket.send "ws://localhost:9160/" (sendInsertMessage model) )
 
         LoadedSVG html ->
-            ( { model | svg = (SP.parse html) |> R.withDefault [] }, Cmd.none)
+            ( { model | svg = (SP.parse html) |> R.withDefault [] }, Cmd.none )
 
         Size width height ->
-            ( { model | height = height, width = width }, Cmd.none )
+            ( { model | height = height - 70, width = width - 40 }, Cmd.none )
 
         ChangeColor color ->
             ( { model | currentColor = color }, Cmd.none )
 
         ChangeStroke value ->
             ( { model | currentStroke = value }, Cmd.none )
+
         ToggleFunction function ->
-            ({ model | functionToggled = function }, Cmd.none )
+            ( { model | functionToggled = function }, Cmd.none )
+
         Save ->
-            (model, save "Save")
+            ( model, save "Save" )
+
         Load ->
-            (model, load "Load")
+            ( model, load "Load" )
+
         SendMessage str ->
-            (model, WebSocket.send "ws://localhost:9160/" str)
+            ( model, WebSocket.send "ws://localhost:9160/" str )
+
         NewMessage str ->
-            let result = decodeEvent str in
-            case result of
-                Ok decoded ->
-                    case decoded.event of
-                      "insert" ->
-                        (updateUpPosition {model | currentObject = decoded.payload} 0 0, Cmd.none)
-                      _ ->
-                        (model, Cmd.none)
-                Err error ->
-                    (model, Cmd.none)
+            let
+                result =
+                    decodeEvent str
+            in
+                case result of
+                    Ok decoded ->
+                        case decoded.event of
+                            "insert" ->
+                                ( updateUpPosition { model | currentObject = decoded.payload } 0 0, Cmd.none )
+
+                            _ ->
+                                ( model, Cmd.none )
+
+                    Err error ->
+                        ( model, Cmd.none )
+
         NewSeed seed ->
-            let (newUuid, newSeed) = step Uuid.uuidGenerator (initialSeed seed) in
-            ({model | uuid = Just newUuid}, WebSocket.send "ws://localhost:9160/" (sendConnectMessage newUuid))
+            let
+                ( newUuid, newSeed ) =
+                    step Uuid.uuidGenerator (initialSeed seed)
+            in
+                ( { model | uuid = Just newUuid }, WebSocket.send "ws://localhost:9160/" (sendConnectMessage newUuid) )
+
         SelectElement id ->
-            (updateSelected model id, Cmd.none)
+            ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
+
+
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Mouse.moves (\{ x, y } -> Model.Position (toFloat x) (toFloat y))
         , Mouse.downs (\{ x, y } -> DownPosition (toFloat x) (toFloat y))
         , Mouse.ups (\{ x, y } -> UpPosition (toFloat x) (toFloat y))
-        , Window.resizes (\{ width, height } -> Size width height)
+        , K.downs (\keyCode -> KeyDown keyCode)
         , loadedSvg (\html -> LoadedSVG html)
         , WebSocket.listen "ws://localhost:9160/" NewMessage
         ]
 
+
 getDrawObjects : Model -> List S.SvgAst
 getDrawObjects model =
     case model.currentObject of
-        Just obj -> obj::model.svg
-        _ -> model.svg
+        Just obj ->
+            obj :: model.svg
 
-svgStyle : Model -> String
-svgStyle model =
-    "width:"
-    ++ (toString model.width) ++ "px;height:"
-        ++ (toString model.height) ++ "px"
+        _ ->
+            model.svg
+
 
 
 -- VIEW
+
+
+mainStyle =
+    style
+        [ ( "background-color", "gray" )
+        , ( "position", "absolute" )
+        , ( "right", "0" )
+        , ( "left", "0" )
+        , ( "top", "0" )
+        , ( "bottom", "0" )
+        ]
+
+
+resizeStyle model =
+    style
+        [ ( "position", "absolute" )
+        , ( "top", (toString model.height) ++ "px" )
+        , ( "left", "calc(" ++ (toString model.width) ++ "px - 10rem)" )
+        , ( "width", "20px" )
+        , ( "height", "20px" )
+        , ( "background-color", "black" )
+        ]
+
+
 view : Model -> Html Msg
 view model =
-    Html.div [ A.class "container" ]
-        [
-         -- Html.div [] [(Html.button [onClick (SendMessage <| M.withDefault "" <| M.map ((++) "Hi! I am ") <| M.map Uuid.toString model.uuid)] [Html.text "msg"]), (Html.button [onClick (SendMessage "12321")] [Html.text "msg2"])]
-         --toHtml (show (model)),
-        --, Html.div [] [Html.text model.test]
-         (toolbar model)
+    Html.div [ A.class "container", mainStyle ]
+        [ -- Html.div [] [(Html.button [onClick (SendMessage <| M.withDefault "" <| M.map ((++) "Hi! I am ") <| M.map Uuid.toString model.uuid)] [Html.text "msg"]), (Html.button [onClick (SendMessage "12321")] [Html.text "msg2"])]
+          --toHtml (show (model)),
+          --, Html.div [] [Html.text model.test]
+          (toolbar model)
+          --, Html.div []
         , drawing model
-        --, Html.div [] (drawSelected model)
-        --, Svg.svg [(SA.style (svgStyle model))] (List.map render (getDrawObjects model))
+        , Html.div [ resizeStyle model ] []
+          --, Html.div [] (drawSelected model)
+          --, Svg.svg [(SA.style (svgStyle model))] (List.map render (getDrawObjects model))
         ]
