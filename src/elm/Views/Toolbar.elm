@@ -6,9 +6,18 @@ import Html
 import Html.Events exposing (onInput, onClick, onWithOptions, on)
 import List exposing (..)
 import Json.Decode as Json
+
+
 -- import Material.Icons.Content exposing (save)
+
 import Color exposing (black)
-import FontAwesome exposing (floppy_o, folder_open)
+import FontAwesome exposing (mouse_pointer, pencil, square, circle, floppy_o, folder_open)
+import SvgAst as S
+import SvgAstOperations exposing (getNodeId)
+
+
+fontSize =
+    20
 
 
 getColorBoxStyle : String -> Html.Attribute a
@@ -99,31 +108,96 @@ rangeSlider v =
         []
 
 
-toolbarStyle : Html.Attribute a
-toolbarStyle =
-    style
-        [ ( "position", "absolute" )
-        , ( "right", "0" )
-        , ( "width", "10rem" )
-        , ( "z-index", "1" )
-        , ( "background-color", "white" )
-        ]
+details : List S.SvgAst -> Html.Html Msg
+details asts =
+    case asts of
+        [] ->
+            Html.div [] [ Html.text "Nothing selected" ]
+
+        [ ast ] ->
+            let
+                selectedId =
+                    getNodeId ast
+            in
+                Html.div [] [ Html.text selectedId ]
+
+        _ ->
+            Html.div [] [ Html.text ((toString (length asts)) ++ " elements selected") ]
+
 
 toolbar model =
     Html.div
-        [ toolbarStyle
-        , A.class "toolbar"
+        [ A.class "toolbar"
         , (onWithOptions "mousedown" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
         , (onWithOptions "mouseup" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
         ]
-        [ Html.div [] (createColorBoxes colors)
-        , Html.input [ value model.currentColor, onInput ChangeColor, A.type_ "color" ] []
-        , (rangeSlider model.currentStroke)
-        , Html.button [onClick (ToggleFunction Select)] [Html.text ("Select " ++ (if model.functionToggled == Select then " ON" else " OFF"))]
-        , Html.button [onClick (ToggleFunction Draw)] [Html.text ("Draw " ++ (if model.functionToggled == Draw then " ON" else " OFF"))]
-        , Html.button [onClick (ToggleFunction Line)] [Html.text ("Line tool" ++ (if model.functionToggled == Line then " ON" else " OFF"))]
-        , Html.button [onClick (ToggleFunction Rect)] [Html.text ("Rect tool" ++ (if model.functionToggled == Rect then " ON" else " OFF"))]
-        , Html.button [onClick (ToggleFunction Circle)] [Html.text ("Circle tool" ++ (if model.functionToggled == Circle then " ON" else " OFF"))]
-        , Html.button [onClick Save] [(floppy_o black 20)]
-        , Html.button [onClick Load] [folder_open black 20]
+        [ Html.div [ A.class "section" ]
+            [ Html.input [ value model.currentColor, onInput ChangeColor, A.type_ "color" ] [] ]
+        , Html.div [ A.class "section" ]
+            [ (rangeSlider model.currentStroke) ]
+        , Html.div [ A.class "section" ]
+            [ Html.button
+                [ onClick (ToggleFunction Select)
+                , (if model.functionToggled == Select then
+                    A.class "active"
+                   else
+                    A.class ""
+                  )
+                ]
+                [ mouse_pointer black fontSize ]
+            , Html.button
+                [ onClick (ToggleFunction Draw)
+                , (if model.functionToggled == Draw then
+                    A.class "active"
+                   else
+                    A.class ""
+                  )
+                ]
+                [ pencil black fontSize ]
+            , Html.button
+                [ onClick (ToggleFunction Line)
+                , (if model.functionToggled == Line then
+                    A.class "active"
+                   else
+                    A.class ""
+                  )
+                ]
+                [ Html.div [ A.class "line-icon" ] [] ]
+            , Html.button
+                [ onClick (ToggleFunction Rect)
+                , (if model.functionToggled == Rect then
+                    A.class "active"
+                   else
+                    A.class ""
+                  )
+                ]
+                [ square black fontSize ]
+            , Html.button
+                [ onClick (ToggleFunction Circle)
+                , (if model.functionToggled == Circle then
+                    A.class "active"
+                   else
+                    A.class ""
+                  )
+                ]
+                [ (circle black fontSize) ]
+            ]
+        , Html.div [ A.class "section" ]
+            [ Html.button [ onClick Save ] [ (floppy_o black fontSize) ]
+            , Html.button [ onClick Load ] [ folder_open black fontSize ]
+            ]
+        , Html.div [ A.class "section" ]
+            [ details model.selected
+            ]
+        , Html.div [ A.class "section bottom" ]
+            [ Html.div []
+                [ Html.input [ A.value (toString model.scale), onInput ChangeScale ] []
+                , Html.text "x"
+                ]
+            , Html.input
+                [ A.value (toString model.width), onInput ChangeWidth ]
+                []
+            , Html.text "x"
+            , Html.input [ A.value (toString model.height), onInput ChangeHeight ] []
+            ]
         ]

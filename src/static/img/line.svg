@@ -1,0 +1,8 @@
+ <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" id="image" transform="translate(0,0) scale(1)" style="width: 20px; height: 20px; background-color: white; position: relative;">
+<g/>
+<g>
+<path d="M 1.6 8.3 L 18.35 8" fill="none" id="0" stroke="#000000" stroke-linejoin="round" stroke-width="3"/>
+</g>
+<rect stroke-dasharray="5, 5" stroke="#4169E1" fill="none" stroke-width="2" x="613" y="621" width="-30" height="-430"/>
+</svg>

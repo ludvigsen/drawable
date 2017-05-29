@@ -20,6 +20,7 @@ type alias Model =
     , downY : Float
     , width : Int
     , height : Int
+    , scale : Float
     , currentColor : String
     , isDown : Bool
     , currentStroke : String
@@ -31,6 +32,7 @@ type alias Model =
     , functionToggled : Function
     , test : String
     , uuid : Maybe Uuid.Uuid
+    , documentId : Maybe String
     , selecting : Bool
     , resizing : Bool
     , currentKey : KeyCode
@@ -55,4 +57,7 @@ type Msg
     | SelectElement String
     | Resize String
     | KeyDown KeyCode
+    | ChangeHeight String
+    | ChangeWidth String
+    | ChangeScale String
     | NoOp

@@ -14,7 +14,7 @@ import Maybe
 import Json.Decode as Json
 import Dict exposing (Dict)
 import Result as R
-import SvgAstOperations exposing (getBoundingRect)
+import SvgAstOperations exposing (getBoundingRect, getId)
 import Html exposing (Html, text, div)
 
 
@@ -51,20 +51,6 @@ parseAttribute attr =
 parseAttributes : Dict S.Key S.Value -> List (Svg.Attribute msg)
 parseAttributes attrs =
     Dict.toList attrs |> map parseAttribute
-
-
-getId : Dict S.Key S.Value -> String
-getId xs =
-    let
-        value =
-            Dict.get "id" xs |> Maybe.withDefault (S.Value "defaultId")
-    in
-        case value of
-            S.Value val ->
-                val
-
-            _ ->
-                "defaultId"
 
 
 drawSvgAst svgs =
@@ -166,26 +152,25 @@ drawSelected model =
         selectingBox :: (L.map drawBoundingBox selected)
 
 
-containerStyles =
+svgStyles model =
     style
-        [ ( "position", "absolute" )
-        , ( "right", "10rem" )
-        , ( "left", "0" )
-        , ( "top", "0" )
-        , ( "bottom", "0" )
+        [ ( "width", (toString (model.width)) ++ "px" )
+        , ( "height", (toString (model.height)) ++ "px" )
+        , ( "background-color", "white" )
+        , ( "position", "relative" )
         ]
 
 
-svgStyles model =
+resizeStyle model =
     style
-        [ ( "width", "calc(" ++ (toString (model.width * 1)) ++ "px - 10rem)" )
-        , ( "height", (toString (model.height * 1)) ++ "px" )
-        , ( "background-color", "white" )
+        [ ( "left", (toString ((toFloat model.width) * model.scale - 20)) ++ "px" )
+        , ( "top", (toString ((toFloat model.height) * model.scale - 20)) ++ "px" )
         ]
 
 
 drawing model =
-    div [ containerStyles ]
-        [ svg [ A.id "image", svgStyles model ]
+    div [ A.class "image-container" ]
+        [ svg [ A.id "image", svgStyles model, transform ("translate(" ++ (toString ((model.scale - 1) * (toFloat model.width) / 2)) ++ "," ++ (toString ((model.scale - 1) * (toFloat model.height) / 2)) ++ ") scale(" ++ (toString model.scale) ++ ")") ]
             ((drawSvgAsts ((Maybe.withDefault (S.Tag "g" Dict.empty []) model.currentObject) :: model.svg)) ++ (drawSelected model))
+        , div [ A.class "resize", resizeStyle model ] []
         ]

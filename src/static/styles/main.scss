@@ -1,3 +1,95 @@
+$box-background: #36393B;
+$box-foreground: #f2f1ef;
+$background: #AAC0C6;
+$button: #A5D8FF;
+.line-icon {
+  width: 20px;
+  height: 20px;
+  background: url('../img/line.svg');
+  background-size: 20px 20px;
+}
 #main {
+  background-color: $background;
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
   cursor: url('../img/pencil.svg'), crosshair;
+  overflow: hidden;
+
+  .image-container {
+    position: absolute;
+    right: 11rem;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    overflow: auto;
+  }
+
+  .resize {
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    &::after{
+      position: absolute;
+      content: "";
+      border-bottom: 10px solid gray;
+      border-right: 10px solid gray;
+      border-top: 10px solid transparent;
+      border-left: 10px solid transparent;
+      cursor: move;
+    }
+  }
+  svg#image {
+    border: 1px solid black;
+  }
+
+  .toolbar {
+    background-color: $box-background;
+    color: $box-foreground;
+    width: 10rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    padding-left: 1rem;
+
+    button {
+      color: $box-background;
+      background-color: $box-foreground;
+      border: none;
+      border-radius: 0.3rem;
+      box-shadow: 0 0.3rem #898989;
+      margin: 0.5rem 0.2rem;
+
+      &:hover,
+      &.hover {
+        background-color: $box-foreground;
+      }
+
+      &:active,
+      &.active {
+        background-color: $box-foreground;
+        box-shadow: 0 2px $box-foreground;
+        transform: translateY(0.3rem);
+      }
+
+    }
+    .section {
+      margin-top: 0.5rem;
+      &.bottom {
+        position: absolute;
+        bottom: 0;
+        input {
+          display: inline;
+          width: 2rem;
+        }
+      }
+    }
+  }
+
 }

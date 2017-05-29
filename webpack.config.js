@@ -6,8 +6,6 @@ var autoprefixer      = require( 'autoprefixer' );
 var ExtractTextPlugin = require( 'extract-text-webpack-plugin' );
 var CopyWebpackPlugin = require( 'copy-webpack-plugin' );
 
-console.log( 'WEBPACK GO!');
-
 // detemine build env
 var TARGET_ENV = process.env.npm_lifecycle_event === 'build' ? 'production' : 'development';
 
@@ -20,8 +18,11 @@ var commonConfig = {
   },
 
   resolve: {
-    modulesDirectories: ['node_modules'],
-    extensions:         ['', '.js', '.elm']
+    modules: [
+      path.join(__dirname, "src"),
+      "node_modules"
+    ],
+    extensions:         ['.js', '.elm']
   },
 
   module: {
@@ -42,7 +43,7 @@ var commonConfig = {
     })
   ],
 
-  postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ],
+  // postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ],
 
 }
 
@@ -59,7 +60,8 @@ if ( TARGET_ENV === 'development' ) {
 
     devServer: {
       inline:   true,
-      progress: true
+      // progress: true,
+      historyApiFallback: true
     },
 
     module: {
@@ -67,14 +69,24 @@ if ( TARGET_ENV === 'development' ) {
         {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
-          loader:  'elm-hot!elm-webpack?verbose=true&warn=true&debug=true'
+          use: [{
+            loader: "elm-hot-loader"
+          },
+                {
+                  loader: "elm-webpack-loader",
+                  options: {
+                    debug: true,
+                    warn: true
+                  }
+                }
+               ]
         },
         {
           test: /\.(css|scss)$/,
           loaders: [
             'style-loader',
             'css-loader',
-            'postcss-loader',
+            //'postcss-loader',
             'sass-loader'
           ]
         }
