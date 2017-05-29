@@ -162,15 +162,17 @@ svgStyles model =
 
 
 resizeStyle model =
+    let scale = String.toFloat model.scale |> R.withDefault 1 in
     style
-        [ ( "left", (toString ((toFloat model.width) * model.scale - 20)) ++ "px" )
-        , ( "top", (toString ((toFloat model.height) * model.scale - 20)) ++ "px" )
+        [ ( "left", (toString ((toFloat model.width) * scale - 20)) ++ "px" )
+        , ( "top", (toString ((toFloat model.height) * scale - 20)) ++ "px" )
         ]
 
 
 drawing model =
+    let scale = String.toFloat model.scale |> R.withDefault 1 in
     div [ A.class "image-container" ]
-        [ svg [ A.id "image", svgStyles model, transform ("translate(" ++ (toString ((model.scale - 1) * (toFloat model.width) / 2)) ++ "," ++ (toString ((model.scale - 1) * (toFloat model.height) / 2)) ++ ") scale(" ++ (toString model.scale) ++ ")") ]
+        [ svg [ A.id "image", svgStyles model, transform ("translate(" ++ (toString ((scale - 1) * (toFloat model.width) / 2)) ++ "," ++ (toString ((scale - 1) * (toFloat model.height) / 2)) ++ ") scale(" ++ (toString scale) ++ ")") ]
             ((drawSvgAsts ((Maybe.withDefault (S.Tag "g" Dict.empty []) model.currentObject) :: model.svg)) ++ (drawSelected model))
         , div [ A.class "resize", resizeStyle model ] []
         ]

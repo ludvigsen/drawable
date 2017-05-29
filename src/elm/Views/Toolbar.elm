@@ -6,6 +6,7 @@ import Html
 import Html.Events exposing (onInput, onClick, onWithOptions, on)
 import List exposing (..)
 import Json.Decode as Json
+import Maybe as M
 
 
 -- import Material.Icons.Content exposing (save)
@@ -108,6 +109,32 @@ rangeSlider v =
         []
 
 
+objectDetailRow : String -> S.SvgAst -> Html.Html Msg
+objectDetailRow attribute ast =
+    let
+        value =
+            S.getAttributeString attribute ast |> M.withDefault "undefined"
+    in
+        Html.tr []
+            [ Html.td [] [ Html.text attribute ]
+            , Html.td [] [ Html.input [ onInput (ChangeDetail attribute), A.value value ] [] ]
+            ]
+
+
+objectDetails : S.SvgAst -> Html.Html Msg
+objectDetails ast =
+    Html.div [ A.class "details" ]
+        [ Html.table []
+            [ Html.tr []
+                [ objectDetailRow "id" ast
+                , objectDetailRow "stroke" ast
+                , objectDetailRow "stroke-width" ast
+                , objectDetailRow "fill" ast
+                ]
+            ]
+        ]
+
+
 details : List S.SvgAst -> Html.Html Msg
 details asts =
     case asts of
@@ -115,11 +142,7 @@ details asts =
             Html.div [] [ Html.text "Nothing selected" ]
 
         [ ast ] ->
-            let
-                selectedId =
-                    getNodeId ast
-            in
-                Html.div [] [ Html.text selectedId ]
+            objectDetails ast
 
         _ ->
             Html.div [] [ Html.text ((toString (length asts)) ++ " elements selected") ]
@@ -128,6 +151,7 @@ details asts =
 toolbar model =
     Html.div
         [ A.class "toolbar"
+        , (onWithOptions "keydown" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
         , (onWithOptions "mousedown" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
         , (onWithOptions "mouseup" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
         ]
@@ -191,13 +215,23 @@ toolbar model =
             ]
         , Html.div [ A.class "section bottom" ]
             [ Html.div []
-                [ Html.input [ A.value (toString model.scale), onInput ChangeScale ] []
+                [ Html.text "Scale: "
+                , Html.input [ A.value model.scale, onInput ChangeScale ] []
                 , Html.text "x"
                 ]
-            , Html.input
-                [ A.value (toString model.width), onInput ChangeWidth ]
-                []
-            , Html.text "x"
-            , Html.input [ A.value (toString model.height), onInput ChangeHeight ] []
+            , Html.div []
+                [ Html.text "Size: "
+                , Html.input
+                    [ A.value (toString model.width), onInput ChangeWidth ]
+                    []
+                , Html.text "x"
+                , Html.input [ A.value (toString model.height), onInput ChangeHeight ] []
+                ]
+            , Html.div []
+                [ Html.text "Position: "
+                , Html.text (toString model.x)
+                , Html.text "x"
+                , Html.text (toString model.y)
+                ]
             ]
         ]

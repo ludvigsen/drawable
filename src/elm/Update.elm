@@ -385,13 +385,14 @@ isInside rect x y =
 updateDownPosition : Model -> Float -> Float -> Model
 updateDownPosition model unscaledX unscaledY =
     let
+        scale = String.toFloat model.scale |> R.withDefault 1
         x =
-            unscaledX / model.scale
+            unscaledX / scale
 
         y =
-            unscaledY / model.scale
+            unscaledY / scale
     in
-        if x > toFloat model.width - (20 / model.scale) && x < toFloat (model.width) && y > toFloat model.height - (20 / model.scale) && y < toFloat model.height then
+        if x > toFloat model.width - (20 / scale) && x < toFloat (model.width) && y > toFloat model.height - (20 / scale) && y < toFloat model.height then
             { model | resizing = True, isDown = True, downX = x, downY = y }
         else
             case model.functionToggled of
@@ -443,22 +444,23 @@ updateDownPosition model unscaledX unscaledY =
 updateUpPosition : Model -> Float -> Float -> ( Model, Cmd msg )
 updateUpPosition model unscaledX unscaledY =
     let
+        scale = String.toFloat model.scale |> R.withDefault 1
         x =
-            unscaledX / model.scale
+            unscaledX / scale
 
         y =
-            unscaledY / model.scale
+            unscaledY / scale
     in
         case model.functionToggled of
             Line ->
                 ( { model
-                      | x = x
-                      , y = y
-                      , isDown = False
-                      , resizing = False
-                      , currentObject = Nothing
-                      , currentId = model.currentId + 1
-                      , svg = insertObject model.svg model.currentObject model.currentId
+                    | x = x
+                    , y = y
+                    , isDown = False
+                    , resizing = False
+                    , currentObject = Nothing
+                    , currentId = model.currentId + 1
+                    , svg = insertObject model.svg model.currentObject model.currentId
                   }
                 , WebSocket.send backend (sendInsertMessage model)
                 )
@@ -657,11 +659,12 @@ updateSelectedObject model x y =
 updatePosition : Model -> Float -> Float -> ( Model, Cmd msg )
 updatePosition model unscaledX unscaledY =
     let
+        scale = String.toFloat model.scale |> R.withDefault 1
         x =
-            unscaledX / model.scale
+            unscaledX / scale
 
         y =
-            unscaledY / model.scale
+            unscaledY / scale
     in
         if model.isDown then
             if model.resizing then
@@ -674,14 +677,13 @@ updatePosition model unscaledX unscaledY =
                     Line ->
                         if model.isDown then
                             ( { model
-                                  | currentObject =
-                                    Just (newLine model ( model.downX, model.downY ) ( x, y ))
+                                | currentObject =
+                                    Just (newLine model ( model.downX, model.downY ) ( x, y )), x = x, y = y
                               }
                             , Cmd.none
                             )
                         else
                             ( model, Cmd.none )
-
 
                     Rect ->
                         ( updateCurrentObject model x y, Cmd.none )
@@ -729,12 +731,32 @@ updateKeyDown model code =
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
+        ChangeDetail attribute value ->
+            case model.selected of
+                [ ast ] ->
+                    case ast of
+                        S.Tag name attributes children ->
+                            let
+                                newAttributes =
+                                    D.insert attribute (S.Value value) attributes
+
+                                updatedAst =
+                                    S.Tag name newAttributes children
+                            in
+                                ( { model
+                                    | selected = [ updatedAst ]
+                                    , svg = updateAsts model.svg [ updatedAst ]
+                                  }
+                                , Cmd.none
+                                )
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ChangeScale string ->
-            let
-                newScale =
-                    String.toFloat string |> R.withDefault model.scale
-            in
-                ( { model | scale = newScale }, Cmd.none )
+                ( { model | scale = string }, Cmd.none )
 
         ChangeWidth string ->
             let

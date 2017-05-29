@@ -20,7 +20,7 @@ type alias Model =
     , downY : Float
     , width : Int
     , height : Int
-    , scale : Float
+    , scale : String
     , currentColor : String
     , isDown : Bool
     , currentStroke : String
@@ -60,4 +60,5 @@ type Msg
     | ChangeHeight String
     | ChangeWidth String
     | ChangeScale String
+    | ChangeDetail String String
     | NoOp

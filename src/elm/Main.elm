@@ -1,7 +1,6 @@
 module Main exposing (..)
 
 import Ports exposing (..)
-
 import Navigation
 import Html.Attributes as A exposing (style, value, class)
 import Html.Events exposing (onInput, onClick, onWithOptions, on)
@@ -53,7 +52,7 @@ initialModel location =
     , downY = 0
     , width = 0
     , height = 0
-    , scale = 1.0
+    , scale = "1"
     , currentColor = "#000000"
     , isDown = False
     , currentStroke = "10"
@@ -81,6 +80,7 @@ init location =
         , Random.generate NewSeed (Random.int Random.minInt Random.maxInt)
         ]
     )
+
 
 
 -- SUBSCRIPTIONS
@@ -114,7 +114,7 @@ getDrawObjects model =
 
 view : Model -> Html Msg
 view model =
-    Html.div [ A.class "container"]
-        [(toolbar model)
+    Html.div [ A.class "container" ]
+        [ (toolbar model)
         , drawing model
         ]

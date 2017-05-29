@@ -58,6 +58,22 @@ $button: #A5D8FF;
     bottom: 0;
     padding-left: 1rem;
 
+    input {
+        background: transparent;
+        border: none;
+    }
+
+    .details, .bottom {
+      input {
+        background: transparent;
+        border: none;
+        color: $box-foreground;
+        outline: none;
+        border-bottom: 2px solid $box-foreground;
+        text-align: center;
+      }
+    }
+
     button {
       color: $box-background;
       background-color: $box-foreground;
