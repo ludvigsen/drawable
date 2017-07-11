@@ -28,6 +28,8 @@ import Views.Drawing exposing (drawing)
 import List as L
 import Dict as D
 import Keyboard as K
+import String exposing (dropLeft)
+import Random.Pcg exposing (initialSeed)
 
 
 main =
@@ -50,6 +52,8 @@ initialModel location =
     , y = 0
     , downX = 0
     , downY = 0
+    , startDragX = 0
+    , startDragY = 0
     , width = 0
     , height = 0
     , scale = "1"
@@ -61,7 +65,7 @@ initialModel location =
     , functionToggled = Select
     , test = "test"
     , uuid = Nothing
-    , documentId = Just location.pathname
+    , documentId = location.pathname |> dropLeft 1 |> Just
     , currentId = 0
     , selectedIds = []
     , selected = []
@@ -69,6 +73,7 @@ initialModel location =
     , resizing = False
     , currentKey = -1
     , clipboard = []
+    , seed = initialSeed 0
     }
 
 

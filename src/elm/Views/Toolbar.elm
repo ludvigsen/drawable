@@ -7,18 +7,20 @@ import Html.Events exposing (onInput, onClick, onWithOptions, on)
 import List exposing (..)
 import Json.Decode as Json
 import Maybe as M
+import Result as R
 
 
 -- import Material.Icons.Content exposing (save)
 
-import Color exposing (black)
-import FontAwesome exposing (mouse_pointer, pencil, square, circle, floppy_o, folder_open)
+import Color exposing (black, rgb)
+import FontAwesome exposing (mouse_pointer, pencil, square, circle, floppy_o, folder_open, search_minus, search_plus)
 import SvgAst as S
 import SvgAstOperations exposing (getNodeId)
 
+foregroundColor = rgb 242 241 239
 
 fontSize =
-    20
+    14
 
 
 getColorBoxStyle : String -> Html.Attribute a
@@ -99,14 +101,17 @@ colors =
 
 rangeSlider : String -> Html.Html Msg
 rangeSlider v =
-    Html.input
-        [ A.type_ "range"
-        , A.min "0"
-        , A.max "40"
-        , value v
-        , onInput ChangeStroke
-        ]
-        []
+    Html.div [] [
+         Html.input
+             [ A.type_ "range"
+             , A.min "0"
+             , A.max "40"
+             , value v
+             , onInput ChangeStroke
+             ]
+             []
+       , Html.text v
+             ]
 
 
 objectDetailRow : String -> S.SvgAst -> Html.Html Msg
@@ -124,31 +129,34 @@ objectDetailRow attribute ast =
 objectDetails : S.SvgAst -> Html.Html Msg
 objectDetails ast =
     Html.div [ A.class "details" ]
-        [ Html.table []
+        [ Html.h4 [] [Html.text "Details"]
+        , Html.table []
             [ Html.tr []
-                [ objectDetailRow "id" ast
-                , objectDetailRow "stroke" ast
-                , objectDetailRow "stroke-width" ast
-                , objectDetailRow "fill" ast
-                ]
+                  [ objectDetailRow "id" ast
+                  , objectDetailRow "stroke" ast
+                  , objectDetailRow "stroke-width" ast
+                  , objectDetailRow "fill" ast
+                  ]
             ]
         ]
 
 
 details : List S.SvgAst -> Html.Html Msg
 details asts =
+    let header = Html.h4 [] [ Html.text "Details"] in
     case asts of
         [] ->
-            Html.div [] [ Html.text "Nothing selected" ]
+            Html.div [] [ header, Html.text "Nothing selected" ]
 
         [ ast ] ->
             objectDetails ast
 
         _ ->
-            Html.div [] [ Html.text ((toString (length asts)) ++ " elements selected") ]
+            Html.div [] [ header, Html.text ((toString (length asts)) ++ " elements selected") ]
 
 
 toolbar model =
+    let scale = model.scale |> String.toFloat |> R.withDefault 1 in
     Html.div
         [ A.class "toolbar"
         , (onWithOptions "keydown" { preventDefault = False, stopPropagation = True } (Json.succeed (NoOp)))
@@ -214,24 +222,30 @@ toolbar model =
             [ details model.selected
             ]
         , Html.div [ A.class "section bottom" ]
-            [ Html.div []
-                [ Html.text "Scale: "
-                , Html.input [ A.value model.scale, onInput ChangeScale ] []
-                , Html.text "x"
-                ]
-            , Html.div []
-                [ Html.text "Size: "
+            [ Html.div [ A.class "scale" ]
+                [ Html.button [ A.class "zoom", onClick (ChangeScale (scale - 0.01 |> toString)) ] [ search_minus foregroundColor fontSize ]
                 , Html.input
+                     [ A.type_ "range"
+                     , A.min "0.01"
+                     , A.step "0.01"
+                     , A.max "10"
+                     , onInput ChangeScale
+                     , A.value model.scale
+                     ] []
+                , scale * 100 |> floor |> toString |> \x -> x ++ "%" |> Html.text
+                , Html.button [ A.class "zoom", onClick (ChangeScale (scale + 0.01 |> toString)) ] [ search_plus foregroundColor fontSize ]
+                ]
+            , Html.div [ A.class "size" ]
+                [ Html.input
                     [ A.value (toString model.width), onInput ChangeWidth ]
                     []
                 , Html.text "x"
                 , Html.input [ A.value (toString model.height), onInput ChangeHeight ] []
                 ]
-            , Html.div []
-                [ Html.text "Position: "
-                , Html.text (toString model.x)
+            , Html.div [ A.class "position"]
+                [ model.x |> floor |> toString |> Html.text
                 , Html.text "x"
-                , Html.text (toString model.y)
+                , model.y |> floor |> toString |> Html.text
                 ]
             ]
         ]

@@ -3,6 +3,7 @@ module Model exposing (..)
 import Uuid
 import SvgAst exposing (SvgAst)
 import Keyboard exposing (KeyCode)
+import Random.Pcg exposing (Seed)
 
 
 type Function
@@ -18,6 +19,8 @@ type alias Model =
     , y : Float
     , downX : Float
     , downY : Float
+    , startDragX : Float
+    , startDragY : Float
     , width : Int
     , height : Int
     , scale : String
@@ -37,6 +40,7 @@ type alias Model =
     , resizing : Bool
     , currentKey : KeyCode
     , clipboard : List SvgAst
+    , seed : Seed
     }
 
 

@@ -8,6 +8,9 @@ $button: #A5D8FF;
   background: url('../img/line.svg');
   background-size: 20px 20px;
 }
+.line-thickness-icon {
+  background: url('../img/line-thickness.svg');
+}
 #main {
   background-color: $background;
   position: absolute;
@@ -15,8 +18,15 @@ $button: #A5D8FF;
   left: 0;
   top: 0;
   bottom: 0;
-  cursor: url('../img/pencil.svg'), crosshair;
+  cursor: url('../img/pencil.png'), crosshair;
   overflow: hidden;
+  div {
+    font-familiy: sans-serif;
+  }
+
+  h4 {
+    font-familiy: sans-serif;
+  }
 
   .image-container {
     position: absolute;
@@ -75,6 +85,7 @@ $button: #A5D8FF;
     }
 
     button {
+      cursor: pointer;
       color: $box-background;
       background-color: $box-foreground;
       border: none;
@@ -93,16 +104,46 @@ $button: #A5D8FF;
         box-shadow: 0 2px $box-foreground;
         transform: translateY(0.3rem);
       }
-
+      &.zoom {
+        background-color: transparent;
+        box-shadow: none;
+        margin: 0;
+        color: $box-foreground;
+        outline: none;
+        &:active,
+        &.active {
+          box-shadow: none;
+          transform: translateY(0.0rem);
+        }
+      }
     }
     .section {
       margin-top: 0.5rem;
       &.bottom {
+        font-size: 0.8rem;
         position: absolute;
         bottom: 0;
         input {
           display: inline;
           width: 2rem;
+        }
+        div {
+          margin-top: 0.5rem;
+        }
+        .size {
+          display: inline-block;
+          float: left;
+        }
+        .position {
+          display: inline-block;
+          float: right;
+        }
+      }
+
+      .scale {
+        margin-left: -5px;
+        input {
+          width: 4.5rem;
         }
       }
     }

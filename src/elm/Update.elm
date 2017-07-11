@@ -2,7 +2,7 @@ module Update exposing (update)
 
 import Ports exposing (..)
 import SvgAst as S
-import SvgAstOperations exposing (getBoundingRect, removeLists)
+import SvgAstOperations exposing (getBoundingRect, removeLists, getId)
 import Navigation exposing (newUrl)
 import List as L exposing (..)
 import Model exposing (..)
@@ -34,15 +34,42 @@ sendInsertMessage model =
             ]
 
 
-sendUpdateMessage : Model -> List S.SvgAst -> String
-sendUpdateMessage model asts =
+getAstId ast =
+    case ast of
+        S.Tag _ attrs _ ->
+            getId attrs |> JE.string
+
+        _ ->
+            "" |> JE.string
+
+
+sendMoveMessage : Model -> String
+sendMoveMessage model =
     JE.encode 0 <|
         JE.object
-            [ ( "event", JE.string "update" )
+            [ ( "event", JE.string "move" )
             , ( "documentId", JE.string <| M.withDefault "" model.documentId )
             , ( "user", JE.string (M.withDefault "" (M.map Uuid.toString model.uuid)) )
-            , ( "payload", JE.list (L.map SE.encode asts) )
+            , ( "payload"
+              , JE.object
+                    [ ( "ids", JE.list (L.map getAstId model.selected) )
+                    , ( "start", JE.list [ JE.float model.startDragX, JE.float model.startDragY ] )
+                    , ( "end", JE.list [ JE.float model.x, JE.float model.y ] )
+                    ]
+              )
             ]
+
+
+
+-- sendUpdateMessage : Model -> List S.SvgAst -> String
+-- sendUpdateMessage model asts =
+--     JE.encode 0 <|
+--         JE.object
+--             [ ( "event", JE.string "update" )
+--             , ( "documentId", JE.string <| M.withDefault "" model.documentId )
+--             , ( "user", JE.string (M.withDefault "" (M.map Uuid.toString model.uuid)) )
+--             , ( "payload", JE.list (L.map SE.encode asts) )
+--             ]
 
 
 sendDeleteMessage : Model -> List S.SvgAst -> String
@@ -71,6 +98,7 @@ type Payload
     = Ast S.SvgAst
     | AstList (List S.SvgAst)
     | Uuid String
+    | MoveInfo (List String) ( Float, Float ) ( Float, Float )
     | Empty
 
 
@@ -91,9 +119,19 @@ defaultEvent =
     }
 
 
+arrayAsTuple2 : JD.Decoder a -> JD.Decoder b -> JD.Decoder ( a, b )
+arrayAsTuple2 a b =
+    JD.index 0 a
+        |> JD.andThen
+            (\aVal ->
+                JD.index 1 b
+                    |> JD.andThen (\bVal -> JD.succeed ( aVal, bVal ))
+            )
+
+
 decodePayload : JD.Decoder Payload
 decodePayload =
-    JD.oneOf [ JD.map AstList (JD.list SD.decode), JD.map Ast SD.decode, JD.map Uuid JD.string, JD.null Empty ]
+    JD.oneOf [ JD.map AstList (JD.list SD.decode), JD.map Ast SD.decode, JD.map Uuid JD.string, JD.null Empty, JD.map3 MoveInfo (JD.at [ "ids" ] (JD.list JD.string)) (JD.at [ "start" ] (arrayAsTuple2 JD.float JD.float)) (JD.at [ "end" ] (arrayAsTuple2 JD.float JD.float)) ]
 
 
 decodeEvent : String -> Result String Event
@@ -309,24 +347,24 @@ parseAst svg object =
             [ (S.Tag "g" D.empty [ object ]) ]
 
 
-addIdToObject : S.SvgAst -> Int -> S.SvgAst
+addIdToObject : S.SvgAst -> Uuid.Uuid -> S.SvgAst
 addIdToObject svgast id =
     case svgast of
         S.Tag name attrs children ->
-            S.Tag name (D.update "id" (\_ -> Just (S.Value (toString id))) attrs) children
+            S.Tag name (D.update "id" (\_ -> Just (S.Value (Uuid.toString id))) attrs) children
 
         _ ->
             svgast
 
 
-insertObject : List S.SvgAst -> M.Maybe S.SvgAst -> Int -> List S.SvgAst
-insertObject svg object id =
-    case object of
-        Just obj ->
-            parseAst svg (addIdToObject obj id)
+insertObjectWithoutId : Uuid.Uuid -> S.SvgAst -> List S.SvgAst -> List S.SvgAst
+insertObjectWithoutId id object svg =
+    parseAst svg (addIdToObject object id)
 
-        Nothing ->
-            svg
+
+insertObject : S.SvgAst -> List S.SvgAst -> List S.SvgAst
+insertObject object svg =
+    parseAst svg object
 
 
 newLine : Model -> ( Float, Float ) -> ( Float, Float ) -> S.SvgAst
@@ -385,7 +423,9 @@ isInside rect x y =
 updateDownPosition : Model -> Float -> Float -> Model
 updateDownPosition model unscaledX unscaledY =
     let
-        scale = String.toFloat model.scale |> R.withDefault 1
+        scale =
+            String.toFloat model.scale |> R.withDefault 1
+
         x =
             unscaledX / scale
 
@@ -431,6 +471,8 @@ updateDownPosition model unscaledX unscaledY =
                             | isDown = True
                             , downX = x
                             , downY = y
+                            , startDragX = x
+                            , startDragY = y
                             , selected =
                                 if L.length model.selected > 1 && L.length selected > 0 then
                                     model.selected
@@ -444,12 +486,17 @@ updateDownPosition model unscaledX unscaledY =
 updateUpPosition : Model -> Float -> Float -> ( Model, Cmd msg )
 updateUpPosition model unscaledX unscaledY =
     let
-        scale = String.toFloat model.scale |> R.withDefault 1
+        scale =
+            String.toFloat model.scale |> R.withDefault 1
+
         x =
             unscaledX / scale
 
         y =
             unscaledY / scale
+
+        ( newUuid, newSeed ) =
+            step Uuid.uuidGenerator (model.seed)
     in
         case model.functionToggled of
             Line ->
@@ -459,8 +506,8 @@ updateUpPosition model unscaledX unscaledY =
                     , isDown = False
                     , resizing = False
                     , currentObject = Nothing
-                    , currentId = model.currentId + 1
-                    , svg = insertObject model.svg model.currentObject model.currentId
+                    , seed = newSeed
+                    , svg = insertObjectWithoutId newUuid (M.withDefault (S.Comment "") model.currentObject) model.svg
                   }
                 , WebSocket.send backend (sendInsertMessage model)
                 )
@@ -472,8 +519,8 @@ updateUpPosition model unscaledX unscaledY =
                     , isDown = False
                     , resizing = False
                     , currentObject = Nothing
-                    , currentId = model.currentId + 1
-                    , svg = insertObject model.svg model.currentObject model.currentId
+                    , seed = newSeed
+                    , svg = insertObjectWithoutId newUuid (M.withDefault (S.Comment "") model.currentObject) model.svg
                   }
                 , WebSocket.send backend (sendInsertMessage model)
                 )
@@ -485,8 +532,8 @@ updateUpPosition model unscaledX unscaledY =
                     , isDown = False
                     , resizing = False
                     , currentObject = Nothing
-                    , currentId = model.currentId + 1
-                    , svg = insertObject model.svg model.currentObject model.currentId
+                    , seed = newSeed
+                    , svg = insertObjectWithoutId newUuid (M.withDefault (S.Comment "") model.currentObject) model.svg
                   }
                 , WebSocket.send backend (sendInsertMessage model)
                 )
@@ -498,15 +545,15 @@ updateUpPosition model unscaledX unscaledY =
                     , isDown = False
                     , resizing = False
                     , currentObject = Nothing
-                    , currentId = model.currentId + 1
-                    , svg = insertObject model.svg model.currentObject model.currentId
+                    , seed = newSeed
+                    , svg = insertObjectWithoutId newUuid (M.withDefault (S.Comment "") model.currentObject) model.svg
                   }
                 , WebSocket.send backend (sendInsertMessage model)
                 )
 
             Select ->
                 ( { model | isDown = False, selecting = False, resizing = False }
-                , Cmd.none
+                , WebSocket.send backend (sendMoveMessage model)
                 )
 
 
@@ -653,13 +700,15 @@ updateSelectedObject model x y =
             updatedSelected =
                 shiftObjects x model.downX y model.downY model.selected
         in
-            ( { model | svg = updateAsts model.svg updatedSelected, downY = y, downX = x, selected = updatedSelected }, WebSocket.send backend (sendUpdateMessage model updatedSelected) )
+            ( { model | svg = updateAsts model.svg updatedSelected, downY = y, downX = x, selected = updatedSelected }, Cmd.none )
 
 
 updatePosition : Model -> Float -> Float -> ( Model, Cmd msg )
 updatePosition model unscaledX unscaledY =
     let
-        scale = String.toFloat model.scale |> R.withDefault 1
+        scale =
+            String.toFloat model.scale |> R.withDefault 1
+
         x =
             unscaledX / scale
 
@@ -678,7 +727,9 @@ updatePosition model unscaledX unscaledY =
                         if model.isDown then
                             ( { model
                                 | currentObject =
-                                    Just (newLine model ( model.downX, model.downY ) ( x, y )), x = x, y = y
+                                    Just (newLine model ( model.downX, model.downY ) ( x, y ))
+                                , x = x
+                                , y = y
                               }
                             , Cmd.none
                             )
@@ -749,6 +800,7 @@ update msg model =
                                   }
                                 , Cmd.none
                                 )
+
                         _ ->
                             ( model, Cmd.none )
 
@@ -756,7 +808,7 @@ update msg model =
                     ( model, Cmd.none )
 
         ChangeScale string ->
-                ( { model | scale = string }, Cmd.none )
+            ( { model | scale = string }, Cmd.none )
 
         ChangeWidth string ->
             let
@@ -838,13 +890,19 @@ update msg model =
                             "insert" ->
                                 case decoded.payload of
                                     Ast payload ->
-                                        ( { model | svg = insertObject model.svg (Just payload) model.currentId, currentId = model.currentId + 1 }, Cmd.none )
+                                        ( { model | svg = insertObject payload model.svg, currentId = model.currentId + 1 }, Cmd.none )
+
+                                    AstList payload ->
+                                        ( { model | svg = L.foldl insertObject model.svg payload, currentId = model.currentId + 1 }, Cmd.none )
 
                                     _ ->
                                         ( model, Cmd.none )
 
                             "user-joined" ->
-                                ( { model | documentId = decoded.documentId }, newUrl <| M.withDefault "" decoded.documentId )
+                                ( { model | documentId = Debug.log "test" decoded.documentId }, newUrl <| M.withDefault "" decoded.documentId )
+
+                            "move" ->
+                                ( model, Cmd.none )
 
                             _ ->
                                 ( model, Cmd.none )
@@ -857,7 +915,7 @@ update msg model =
                 ( newUuid, newSeed ) =
                     step Uuid.uuidGenerator (initialSeed seed)
             in
-                ( { model | uuid = Just newUuid }, WebSocket.send backend (sendConnectMessage model.documentId newUuid) )
+                ( { model | uuid = Just newUuid, seed = newSeed }, WebSocket.send backend (sendConnectMessage model.documentId newUuid) )
 
         SelectElement id ->
             ( model, Cmd.none )

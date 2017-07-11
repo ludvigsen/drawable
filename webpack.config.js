@@ -81,13 +81,16 @@ if ( TARGET_ENV === 'development' ) {
                 }
                ]
         },
+        { test: /\.(png|woff|woff2|eot|ttf|svg)$/, loaders: ['url-loader'] },
         {
           test: /\.(css|scss)$/,
           loaders: [
+            //'url-loader',
             'style-loader',
             'css-loader',
             //'postcss-loader',
-            'sass-loader'
+            'sass-loader',
+            //'file-loader',
           ]
         }
       ]
